@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id      Int      @id @default(autoincrement())
+  email   String   @unique
+  name    String   @map("firstName") //to change the name of the field inside our table
+  role    Role?    @default(USER)
+  profile Profile?
+  posts   Post[]
+
+  // @@id([email, name]) //sets the ID to be a combination of email and name
+  @@unique([name, role]) //To make the combination of the two fields specified in the array to be unique
+  @@index([id, email]) // to define an index for our model
+  @@map("users") //to change the name of our table in the database
+}
+
+model Profile {
+  id     Int    @id @default(autoincrement())
+  bio    String
+  userId Int    @unique
+  user   User   @relation(fields: [userId], references: [id]) // In references, we specify the fields inside the User model that this userId field would point to
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Post {
+  id         Int        @id @default(autoincrement())
+  title      String
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  published  Boolean    @default(false)
+  likeNum    Int        @default(0)
+  authorId   Int
+  author     User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  //if we want to automatically delete the user post when we delete the user to avoid errors in prisma studio, we set the 'onDelete' to 'Cascade'
+  //'Restrict' is the default one which prevents the user from deleting. 'SetNull' sets the userId on the post to null but we have to set the authorId and author to optional using '?' for this to work
+  categories Category[] // we do not need to set the @relation attribute for many-to-many relationship
+}
+
+model Category {
+  id   Int    @id @default(autoincrement())
+  name String
+  post Post[] // we do not need to set the @relation attribute for many-to-many relationship
+}
+
+// model User {
+//   firstName String
+//   lastName String
+//   profile Profile?
+
+//   @@id([firstName,lastName])
+// }
+
+// model Profile {
+//   id Int @id
+//   userFirstName String
+//   userLastName String
+//   user User @relation(fields: [userFirstName,userLastName], references: [firstName,lastName])
+
+//   @@unique([userFirstName,userLastName])
+// }
+
+// @id indicates the id of each data model
+// @default attribute sets a default attribute for a field
+// @map("new field name") changes the name of the field inside our table
+// @@map("new table name") changes the name of our table in the database
+// we add a question mark '?' after the type of a field to allow for null values.
